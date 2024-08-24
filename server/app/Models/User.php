@@ -43,7 +43,7 @@ class User extends Authenticatable
     ];
 
 
-    public $timestamps = false;
+    public $timestamps = true;
 
     /**
      * Get the attributes that should be cast.
