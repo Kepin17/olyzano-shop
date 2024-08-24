@@ -9,9 +9,9 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Support\Facades\Crypt;
 use App\Models\UserProfile;
+use Tymon\JWTAuth\Contracts\JWTSubject;
 
-
-class User extends Authenticatable
+class User extends Authenticatable implements JWTSubject
 {
     use HasFactory, Notifiable , HasApiTokens;
 
@@ -22,15 +22,19 @@ class User extends Authenticatable
      */
 
     protected $fillable = [
-        'customer_id',
         'username',
         'email',
         'password',
         'role',
-        'activated',
     ];
 
+    public function getJWTIdentifier() {
+        return $this->getKey();
+    }
 
+    public function getJWTCustomClaims() {
+        return [];
+    }
 
     /**
      * The attributes that should be hidden for serialization.

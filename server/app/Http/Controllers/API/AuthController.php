@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use Tymon\JWTAuth\Facades\JWTAuth;
 
 class AuthController extends Controller
 {
@@ -16,7 +17,7 @@ class AuthController extends Controller
             'username' => 'required|unique:users|max:20',
             'email' => 'required|email|unique:users|max:50',
             'password' => 'required|min:8',
-            'role' => 'required',
+            'confirm_password' => 'required|same:password'
         ]);
 
         if ($validator->fails()) {
@@ -31,34 +32,34 @@ class AuthController extends Controller
         $data['password'] = bcrypt($data['password']);
         $user = User::create($data);
 
-        $success['username'] = $user->username;
-
         return response()->json([
             'success' => true,
             'message' => 'Registrasi Berhasil!',
-            'data' => $success
+            'data' => $user->only('email', 'username')
         ], 201);
     }
 
     public function login(Request $request)
     {
-        if (Auth::attempt(['email' => $request->email, 'password' => $request->password])) {
-            $auth = Auth::user();
-            $success['email'] = $auth->username;
-            $success['username'] = $auth->username;
-            $success['created_at'] = $auth->created_at;
+        $credentials = $request->only('email', 'password');
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Login Berhasil!',
-                'data' => $success
-            ], 200);
-        } else {
+        if (!$token = JWTAuth::attempt($credentials)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Login Gagal!',
                 'data' => 'Email atau Password Salah!'
             ], 401);
         }
+
+        $user = Auth::user();
+        $success['token'] = $token;
+        $success['username'] = $user->username;
+        $success['email'] = $user->email;
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Login Berhasil!',
+            'data' => $success
+        ], 200);
     }
 }
