@@ -44,7 +44,16 @@ class ProductController extends Controller
         }
 
         $data = $request->all();
-        $data['slug'] = Str::slug($request->name);
+        $baseSlug = Str::slug($request->name);
+        $slug = $baseSlug;
+        $counter = 1;
+
+        while (Product::where('slug', $slug)->exists()) {
+            $slug = $baseSlug . '-' . $counter;
+            $counter++;
+        }
+
+        $data['slug'] = $slug;
 
         if ($request->hasFile('image')) {
             $image = $request->file('image');
