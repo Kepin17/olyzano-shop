@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('username')->unique();
             $table->string('email')->unique();
             $table->string('password');
-            $table->string("role");
+            $table->string("role")->default('customer');
             $table->timestamps();
             // $table->string("customer_id");
             // $table->string("activated");

@@ -28,6 +28,10 @@ class User extends Authenticatable implements JWTSubject
         'role',
     ];
 
+    protected $attributes = [
+        'role' => 'customer',
+    ];
+
     public function getJWTIdentifier() {
         return $this->getKey();
     }

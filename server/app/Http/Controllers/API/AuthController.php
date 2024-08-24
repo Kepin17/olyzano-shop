@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use Tymon\JWTAuth\Exceptions\JWTException;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
 class AuthController extends Controller
@@ -30,6 +31,10 @@ class AuthController extends Controller
 
         $data = $request->all();
         $data['password'] = bcrypt($data['password']);
+        if (empty($data['role'])) {
+            $data['role'] = 'customer';
+        }
+
         $user = User::create($data);
 
         return response()->json([
@@ -61,5 +66,21 @@ class AuthController extends Controller
             'message' => 'Login Berhasil!',
             'data' => $success
         ], 200);
+    }
+
+    public function logout(Request $request)
+    {
+        try {
+            JWTAuth::invalidate(JWTAuth::getToken());
+            return response()->json([
+                'success' => true,
+                'message' => 'Berhasil Logout!'
+            ]);
+        } catch (JWTException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Logout Gagal!'
+            ], 500);
+        }
     }
 }
