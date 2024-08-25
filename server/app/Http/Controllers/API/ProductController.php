@@ -30,7 +30,7 @@ class ProductController extends Controller
             'stock' => 'required|numeric',
             'description' => 'required|string',
             'category' => 'required|string',
-            'image' => 'required|image|mimes:jpeg,png,jpg|max:2048',
+            'image.*' => 'required|image|mimes:jpeg,png,jpg|max:10240',
             'is_flash_sale' => 'nullable|boolean',
             'discount' => 'nullable|numeric',
             'rating' => 'nullable|numeric|min:0|max:5',
@@ -70,12 +70,15 @@ class ProductController extends Controller
         }
 
         $data['slug'] = $slug;
+        $imageNames = [];
 
         if ($request->hasFile('image')) {
-            $image = $request->file('image');
-            $imageName = time() . '.' . $image->extension();
-            $image->storeAs('public/images', $imageName);
-            $data['image'] = $imageName;
+            foreach ($request->file('image') as $image) {
+                $imageName = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
+                $image->storeAs('public/images', $imageName);
+                $imageNames[] = $imageName;
+            }
+            $data['image'] = implode(',', $imageNames);
         } else {
             return response()->json([
                 'success' => false,
@@ -94,7 +97,9 @@ class ProductController extends Controller
             'message' => 'Produk berhasil ditambahkan!',
             'data' => [
                 'product' => $product,
-                'image_url' => asset('storage/images/'. $imageName)
+                'image_urls' => array_map(function ($imageName) {
+                    return asset('storage/images/' . $imageName);
+                }, $imageNames)
             ]
         ], 201);
     }
@@ -116,7 +121,7 @@ class ProductController extends Controller
             'message' => 'Detail Produk',
             'data' => [
                 'product' => $product,
-                'image_url' => asset('storage/images/'. $imageName)
+                'image_url' => asset('storage/images/' . $imageName)
             ]
         ], 200);
     }
@@ -179,7 +184,7 @@ class ProductController extends Controller
             'message' => 'Produk berhasil diubah!',
             'data' => [
                 'product' => $product,
-                'image_url' => asset('storage/images/'. $imageName)
+                'image_url' => asset('storage/images/' . $imageName)
             ]
         ], 200);
     }
