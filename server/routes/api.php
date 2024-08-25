@@ -16,6 +16,7 @@ Route::prefix('v1')->group(function () {
 
     Route::get('/products', [ProductController::class, 'showAllProduct']);
     Route::post('/product', [ProductController::class, 'addProduct']);
+    Route::get('/product/{slug}', [ProductController::class, 'showProductBySlug']);
 });
 
 // Route::post("/login" , [UserController::class, "login"]);

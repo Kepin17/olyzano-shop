@@ -5,7 +5,6 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Models\Product;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
@@ -46,10 +45,14 @@ class ProductController extends Controller
 
         $data = $request->all();
 
-        // SLUGNYA MASIH ERROR OM GENERATE PUN MASIH DIBILANG DUPLIKAT
         $baseSlug = Str::slug($request->name);
         $slug = $baseSlug;
-        $counter = 1;
+        $counter = 0;
+
+        $hashSlug = md5($baseSlug);
+        $formattedHash = implode('-', str_split($hashSlug, random_int(3, 10)));
+        $formattedHash = rtrim($formattedHash, '-');
+        $slug = substr($formattedHash, 0, 20);
 
         while (Product::where('slug', $slug)->exists()) {
             $counter++;
@@ -89,5 +92,23 @@ class ProductController extends Controller
             'message' => 'Produk berhasil ditambahkan!',
             'data' => $product
         ], 201);
+    }
+
+    public function showProductBySlug($slug)
+    {
+        $product = Product::where('slug', $slug)->first();
+
+        if (!$product) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Produk Tidak Ditemukan!',
+            ], 400);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Detail Produk',
+            'data' => $product
+        ], 200);
     }
 }
