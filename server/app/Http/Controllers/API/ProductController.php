@@ -111,4 +111,63 @@ class ProductController extends Controller
             'data' => $product
         ], 200);
     }
+
+    public function updateProductBySlug(Request $request, $slug)
+    {
+        $validator = Validator::make($request->all(), [
+            'name' => ['required', 'string', 'max:255'],
+            'price' => ['required', 'numeric'],
+            'stock' => ['required', 'numeric'],
+            'description' => ['required', 'string'],
+            'image' => ['nullable', 'image', 'mimes:jpeg,png,jpg', 'max:2048'],
+            'is_flash_sale' => 'nullable|boolean',
+            'discount' => 'nullable|numeric',
+            'rating' => 'nullable|numeric|min:0|max:5',
+            'total_rating' => 'nullable|integer|min:0',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ada Kesalahan!',
+                'errors' => $validator->errors()
+            ], 400);
+        }
+
+        $product = Product::where('slug', $slug)->firstOrFail();
+
+        $data = $request->all();
+
+        if ($request->has('name')) {
+            $baseSlug = Str::slug($request->name);
+            $hashSlug = md5($baseSlug);
+            $formattedHash = implode('-', str_split($hashSlug, random_int(3, 10)));
+            $formattedHash = rtrim($formattedHash, '-');
+            $slug = substr($formattedHash, 0, 20);
+
+            while (Product::where('slug', $slug)->exists()) {
+                $hashSlug = md5($baseSlug . '-' . Str::random(8));
+                $formattedHash = implode('-', str_split($hashSlug, random_int(3, 10)));
+                $formattedHash = rtrim($formattedHash, '-');
+                $slug = substr($formattedHash, 0, 20);
+            }
+            $data['slug'] = $slug;
+        }
+
+        $product->update($data);
+
+        if ($request->hasFile('image')) {
+            $image = $request->file('image');
+            $imageName = time() . '.' . $image->extension();
+            $image->storeAs('public/images', $imageName);
+            $product->image = $imageName;
+            $product->save();
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Produk berhasil diubah!',
+            'data' => $product
+        ], 200);
+    }
 }
