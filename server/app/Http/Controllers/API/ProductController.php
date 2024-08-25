@@ -25,11 +25,12 @@ class ProductController extends Controller
     public function addProduct(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'name' => ['required', 'string', 'max:255'],
-            'price' => ['required', 'numeric'],
-            'stock' => ['required', 'numeric'],
-            'description' => ['required', 'string'],
-            'image' => ['required', 'image', 'mimes:jpeg,png,jpg', 'max:2048'],
+            'name' => 'required|string|max:255',
+            'price' => 'required|numeric',
+            'stock' => 'required|numeric',
+            'description' => 'required|string',
+            'category' => 'required|string',
+            'image' => 'required|image|mimes:jpeg,png,jpg|max:2048',
             'is_flash_sale' => 'nullable|boolean',
             'discount' => 'nullable|numeric',
             'rating' => 'nullable|numeric|min:0|max:5',
@@ -91,7 +92,10 @@ class ProductController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Produk berhasil ditambahkan!',
-            'data' => $product
+            'data' => [
+                'product' => $product,
+                'image_url' => asset('storage/images/'. $imageName)
+            ]
         ], 201);
     }
 
@@ -105,22 +109,27 @@ class ProductController extends Controller
                 'message' => 'Produk Tidak Ditemukan!',
             ], 400);
         }
+        $imageName = $product->image;
 
         return response()->json([
             'success' => true,
             'message' => 'Detail Produk',
-            'data' => $product
+            'data' => [
+                'product' => $product,
+                'image_url' => asset('storage/images/'. $imageName)
+            ]
         ], 200);
     }
 
     public function updateProductBySlug(Request $request, $slug)
     {
         $validator = Validator::make($request->all(), [
-            'name' => ['required', 'string', 'max:255'],
-            'price' => ['required', 'numeric'],
-            'stock' => ['required', 'numeric'],
-            'description' => ['required', 'string'],
-            'image' => ['nullable', 'image', 'mimes:jpeg,png,jpg', 'max:2048'],
+            'name' => 'required|string|max:255',
+            'price' => 'required|numeric',
+            'stock' => 'required|numeric',
+            'description' => 'required|string',
+            'category' => 'required|string',
+            'image' => 'required|image|mimes:jpeg,png,jpg|max:2048',
             'is_flash_sale' => 'nullable|boolean',
             'discount' => 'nullable|numeric',
             'rating' => 'nullable|numeric|min:0|max:5',
@@ -168,7 +177,10 @@ class ProductController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Produk berhasil diubah!',
-            'data' => $product
+            'data' => [
+                'product' => $product,
+                'image_url' => asset('storage/images/'. $imageName)
+            ]
         ], 200);
     }
 

@@ -18,6 +18,7 @@ return new class extends Migration
             $table->decimal('price', 10, 2);
             $table->text('description');
             $table->string('slug')->unique();
+            $table->string('category');
             $table->decimal('discount', 5, 2)->default(0);
             $table->float('rating', 2)->default(0);
             $table->integer('total_rating')->default(0);

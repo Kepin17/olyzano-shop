@@ -15,6 +15,7 @@ class Product extends Model
         'price',
         'description',
         'slug',
+        'category',
         'discount',
         'rating',
         'total_rating',
