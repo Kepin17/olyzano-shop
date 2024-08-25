@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers\API;
 
-use App\Http\Controllers\Controller;
 use App\Models\Product;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 
 class ProductController extends Controller
 {
@@ -168,6 +169,29 @@ class ProductController extends Controller
             'success' => true,
             'message' => 'Produk berhasil diubah!',
             'data' => $product
+        ], 200);
+    }
+
+    public function deleteProductBySlug($slug)
+    {
+        $product = Product::where('slug', $slug)->firstOrFail();
+
+        if (!$product) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Produk tidak ditemukan!',
+            ], 404);
+        }
+
+        $product->delete();
+
+        if ($product->image) {
+            Storage::delete('public/images/' . $product->image);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Produk berhasil dihapus!',
         ], 200);
     }
 }
