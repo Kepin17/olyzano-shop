@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Models\Product;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
@@ -44,13 +45,23 @@ class ProductController extends Controller
         }
 
         $data = $request->all();
+
+        // SLUGNYA MASIH ERROR OM GENERATE PUN MASIH DIBILANG DUPLIKAT
         $baseSlug = Str::slug($request->name);
         $slug = $baseSlug;
         $counter = 1;
 
         while (Product::where('slug', $slug)->exists()) {
-            $slug = $baseSlug . '-' . $counter;
             $counter++;
+            $newSlug = $baseSlug . '-' . $counter;
+            $hashSlug = md5($newSlug);
+            $formattedHash = implode('-', str_split($hashSlug, random_int(3, 10)));
+            $formattedHash = rtrim($formattedHash, '-');
+            $slug = substr($formattedHash, 0, 20);
+
+            if (!Product::where('slug', $slug)->exists()) {
+                break;
+            }
         }
 
         $data['slug'] = $slug;
