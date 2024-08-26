@@ -21,5 +21,6 @@ Route::prefix('v1')->group(function () {
         Route::get('/product/{slug}', [ProductController::class, 'showProductBySlug']);
         Route::post('/product/{slug}', [ProductController::class, 'updateProductBySlug']);
         Route::delete('/product/{slug}', [ProductController::class, 'deleteProductBySlug']);
+        Route::get('/flash-sale-products', [ProductController::class, 'showFlashSaleProducts']);
     });
 });
