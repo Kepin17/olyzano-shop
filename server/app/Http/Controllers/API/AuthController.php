@@ -60,6 +60,7 @@ class AuthController extends Controller
         $success['token'] = $token;
         $success['username'] = $user->username;
         $success['email'] = $user->email;
+        $success['role'] = $user->role;
 
         return response()->json([
             'success' => true,
@@ -83,4 +84,6 @@ class AuthController extends Controller
             ], 500);
         }
     }
+
+    
 }

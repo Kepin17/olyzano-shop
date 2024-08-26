@@ -20,6 +20,7 @@ const NavbarFragment: React.FC<NavbarFragmentProps> = (props) => {
   const [isScrolling, setIsScrolling] = useState(false);
   const [token, setToken] = useState("");
   const [username, setUsername] = useState("");
+  const [role, setRole] = useState("");
   const [dropDownProfile, setDropDownProfile] = useState(false);
 
   const navigate = useNavigate();
@@ -30,6 +31,7 @@ const NavbarFragment: React.FC<NavbarFragmentProps> = (props) => {
     if (user.data) {
       setToken(user.data.token);
       setUsername(user.data.username);
+      setRole(user.data.role);
     }
   }, []);
 
@@ -66,6 +68,7 @@ const NavbarFragment: React.FC<NavbarFragmentProps> = (props) => {
       );
       console.log("Logout success" + response.data);
       localStorage.removeItem("user");
+
       navigate("/login");
     } catch (err) {
       console.log(err);
@@ -156,7 +159,13 @@ const NavbarFragment: React.FC<NavbarFragmentProps> = (props) => {
               >
                 Login
               </Button>
-              <Button type="button" className="w-full h-10 rounded-md bg-[#201E43] text-white font-roboto font-bold">
+              <Button
+                type="button"
+                className="w-full h-10 rounded-md bg-[#201E43] text-white font-roboto font-bold"
+                onClick={() => {
+                  navigate("/register");
+                }}
+              >
                 Register
               </Button>
             </>
@@ -189,6 +198,7 @@ const NavbarFragment: React.FC<NavbarFragmentProps> = (props) => {
                     Logout
                   </button>
                   <button className="hover:text-[#E88D67]">Shipping Status</button>
+                  {role === "admin" || (role === "super admin" && <button className="hover:text-[#E88D67]">Admin Dashboard</button>)}
                 </div>
               </div>
             </>
