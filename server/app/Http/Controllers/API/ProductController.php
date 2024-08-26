@@ -11,9 +11,25 @@ use Illuminate\Support\Facades\Validator;
 
 class ProductController extends Controller
 {
+
+    private function calculatedSoldPercentage($totalStock, $currentStock) {
+        if ($totalStock == 0) {
+            return 0;
+        }
+
+        $soldStock = $totalStock - $currentStock;
+        $soldPercentage = ($soldStock / $totalStock) * 100;
+
+        return round($soldPercentage, 2);
+    }
+
     public function showAllProduct()
     {
         $products = Product::all();
+
+        foreach ($products as $product) {
+            $product->sold_percentage = $this->calculatedSoldPercentage($product->stock, $product->current_stock);
+        }
 
         return response()->json([
             'success' => true,
@@ -114,6 +130,7 @@ class ProductController extends Controller
                 'message' => 'Produk Tidak Ditemukan!',
             ], 400);
         }
+        $product->sold_percentage = $this->calculatedSoldPercentage($product->stock, $product->current_stock);
         $imageName = $product->image;
 
         return response()->json([

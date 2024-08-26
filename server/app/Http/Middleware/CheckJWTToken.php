@@ -19,6 +19,7 @@ class CheckJWTToken
     public function handle(Request $request, Closure $next): Response
     {
         Log::info('Processing route: ' . $request->path());
+        Log::info('Authorization Header: ' . $request->header('Authorization'));
         try {
             $user = JWTAuth::parseToken()->authenticate();
         } catch (Exception $e) {
