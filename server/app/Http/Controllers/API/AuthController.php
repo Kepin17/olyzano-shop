@@ -68,6 +68,59 @@ class AuthController extends Controller
             'data' => $success
         ], 200);
     }
+   
+    public function verify_email_reset_password(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email'
+        ]);
+
+        $user = User::where('email', $request->email)->first();
+
+        if(!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Verifikasi Email Gagal!',
+                'data' => "Email Tidak Terdaftar!"
+            ] , 400);
+        }
+
+        try {
+            $token = JWTAuth::fromUser($user);
+        } catch (JWTException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menambahkan token!',
+                'data' => $e->getMessage()
+            ], 500);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Verifikasi Email Berhasil!',
+            'data' => [
+                'token' => $token,
+                'email' => $user->email
+            ]
+            ], 200);
+    }
+
+    public function reset_password(Request $request) {
+        $request->validate([
+            'email' => 'required|email',
+            'password' => 'required|min:8',
+            'confirm_password' => 'required|same:password'
+        ]);
+
+        $user = User::where('email', $request->email)->first();
+        $user->password = bcrypt($request->password);
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Password Berhasil direset!',
+        ]);
+    }
 
     public function logout(Request $request)
     {

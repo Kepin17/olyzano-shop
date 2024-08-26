@@ -25,7 +25,7 @@ const AuthLayouts: React.FC<AuthLayoutProps> = (props) => {
           </Link>
         </div>
         <Button type="button" className="w-full h-10 bg-[#E88D67] rounded-md font-bold font-roboto text-white mt-3">
-          {buttonText === "Login" ? "Login" : "Register"}
+          {buttonText}
         </Button>
       </div>
     </form>

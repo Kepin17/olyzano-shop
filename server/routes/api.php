@@ -13,6 +13,8 @@ Route::get('/user', function (Request $request) {
 Route::prefix('v1')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/verify_email_reset_password', [AuthController::class, 'verify_email_reset_password']);
+    Route::post('/reset_password', [AuthController::class, 'reset_password']);
 
     Route::middleware(['check.jwt.token'])->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
