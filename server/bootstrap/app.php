@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\CheckJWTToken;
 use Illuminate\Http\Request;
 use Illuminate\Foundation\Application;
 use Illuminate\Auth\AuthenticationException;
@@ -14,14 +15,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        //
+        $middleware->appendToGroup('check.jwt.token', [
+            CheckJWTToken::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        $exceptions->render(function (AuthenticationException $e, Request $request) {
-            if ($request->is('api/*')) {
-                return response()->json([
-                    'message' => $e->getMessage(),
-                ], 401);
-            }
-        });
+        //
     })->create();

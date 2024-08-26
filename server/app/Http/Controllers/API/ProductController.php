@@ -11,9 +11,39 @@ use Illuminate\Support\Facades\Validator;
 
 class ProductController extends Controller
 {
+
+    private function calculatedSoldPercentage($totalStock, $currentStock)
+    {
+        if ($totalStock == 0) {
+            return 0;
+        }
+
+        $soldStock = $totalStock - $currentStock;
+        $soldPercentage = ($soldStock / $totalStock) * 100;
+
+        return round($soldPercentage, 2);
+    }
+
+    private function applyDiscount($price, $discount)
+    {
+        if ($discount && $discount > 0) {
+            return $price - ($price * ($discount / 100));
+        }
+
+        return $price;
+    }
+
     public function showAllProduct()
     {
         $products = Product::all();
+
+        foreach ($products as $product) {
+            $product->sold_percentage = $this->calculatedSoldPercentage($product->stock, $product->current_stock);
+
+            if ($product->is_flash_sale) {
+                $product->price_after_discount = $this->applyDiscount($product->price, $product->discount);
+            }
+        }
 
         return response()->json([
             'success' => true,
@@ -114,6 +144,12 @@ class ProductController extends Controller
                 'message' => 'Produk Tidak Ditemukan!',
             ], 400);
         }
+        $product->sold_percentage = $this->calculatedSoldPercentage($product->stock, $product->current_stock);
+
+        if ($product->is_flash_sale) {
+            $product->price_after_discount = $this->applyDiscount($product->price, $product->discount);
+        }
+
         $imageName = $product->image;
 
         return response()->json([
@@ -209,6 +245,22 @@ class ProductController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Produk berhasil dihapus!',
+        ], 200);
+    }
+
+    public function showFlashSaleProducts()
+    {
+        $flashSaleProducts = Product::where('is_flash_sale', true)->get();
+
+        foreach ($flashSaleProducts as $product) {
+            $product->sold_percentage = $this->calculatedSoldPercentage($product->stock, $product->current_stock);
+            $product->price_after_discount = $this->applyDiscount($product->price, $product->discount);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Daftar Produk Flash Sale',
+            'data' => $flashSaleProducts
         ], 200);
     }
 }
