@@ -7,6 +7,7 @@ import Input from "../../elements/input";
 import Button from "../../elements/Button";
 import { MdHourglassEmpty } from "react-icons/md";
 import { IoIosArrowUp } from "react-icons/io";
+import axios from "axios";
 
 interface NavbarFragmentProps {
   children: React.ReactNode;
@@ -17,19 +18,20 @@ const NavbarFragment: React.FC<NavbarFragmentProps> = (props) => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [showBasketDropdown, setShowBasketDropdown] = useState(false);
   const [isScrolling, setIsScrolling] = useState(false);
-  const [username, setUsername] = useState("s");
+  const [token, setToken] = useState("");
+  const [username, setUsername] = useState("");
   const [dropDownProfile, setDropDownProfile] = useState(false);
 
   const navigate = useNavigate();
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user-id") || "{}");
-    if (user && user.username) {
-      setUsername(user.username);
-    } else {
-      setUsername("guest");
+    const getUser = localStorage.getItem("user") || "{}";
+    const user = JSON.parse(getUser);
+    if (user.data) {
+      setToken(user.data.token);
+      setUsername(user.data.username);
     }
-  }, [username]);
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -49,6 +51,25 @@ const NavbarFragment: React.FC<NavbarFragmentProps> = (props) => {
   const showBasketDropdownHandler = () => {
     setShowBasketDropdown(true);
     setShowDropdown(false);
+  };
+
+  const logoutHandler = async () => {
+    try {
+      const response = await axios.post(
+        "http://localhost:8000/api/v1/logout",
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      console.log("Logout success" + response.data);
+      localStorage.removeItem("user");
+      navigate("/login");
+    } catch (err) {
+      console.log(err);
+    }
   };
 
   return (
@@ -124,7 +145,7 @@ const NavbarFragment: React.FC<NavbarFragmentProps> = (props) => {
               </Link>
             </li>
           </ul>
-          {username === "guest" ? (
+          {token === "" ? (
             <>
               <Button
                 type="button"
@@ -164,13 +185,7 @@ const NavbarFragment: React.FC<NavbarFragmentProps> = (props) => {
                   }}
                 >
                   <button className="hover:text-[#E88D67]">Profile</button>
-                  <button
-                    className="hover:text-[#E88D67]"
-                    onClick={() => {
-                      localStorage.clear();
-                      window.location.reload();
-                    }}
-                  >
+                  <button className="hover:text-[#E88D67]" onClick={logoutHandler}>
                     Logout
                   </button>
                   <button className="hover:text-[#E88D67]">Shipping Status</button>
