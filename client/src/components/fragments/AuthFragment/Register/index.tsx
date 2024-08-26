@@ -4,7 +4,6 @@ import Label from "../../../elements/label";
 import Input from "../../../elements/input";
 import { FaEye, FaEyeSlash } from "react-icons/fa6";
 import axios from "axios";
-import bcrypt from "bcryptjs";
 import { useNavigate } from "react-router-dom";
 
 interface RegisterProps {
@@ -24,25 +23,17 @@ const Register: React.FC<RegisterProps> = (props) => {
   const RegisterHandler = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    const role = "customer";
-
     // active from
 
-    const getTime = new Date();
-    const activated = getTime.getDate() + "-" + (getTime.getMonth() + 1) + "-" + getTime.getFullYear();
-    const customer_id = bcrypt.hashSync(username, 10);
-    console.log(customer_id);
     if (password !== checkPassword) {
       alert("Password does not match");
     } else {
       axios
-        .post("http://localhost:8000/api/register", {
-          customer_id: customer_id,
+        .post("http://localhost:8000/api/v1/register", {
           username: username,
           email: email,
           password: password,
-          role: role,
-          activated: activated,
+          confirm_password: checkPassword,
         })
         .then((response) => {
           navigate("/login");
@@ -110,7 +101,7 @@ const Register: React.FC<RegisterProps> = (props) => {
               onChange={(e) => setCheckPassword(e.target.value)}
             />
             <div className="absolute top-1/2 right-3 -translate-y-1/2 cursor-pointer">
-              {showCheckPassword ? <FaEyeSlash onClick={() => setShowCheckPassword(!showPassword)} /> : <FaEye onClick={() => setShowCheckPassword(!showPassword)} />}
+              {showCheckPassword ? <FaEyeSlash onClick={() => setShowCheckPassword(!showCheckPassword)} /> : <FaEye onClick={() => setShowCheckPassword(!showCheckPassword)} />}
             </div>
           </div>
         </div>

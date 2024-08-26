@@ -5,24 +5,30 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Auth;
 
 class UserController extends Controller
 {
     function register(Request $request) {
         $user = new User;
-        $user->customer_id= $request->input('customer_id');
-        $user->username= $request->input('username');
-        $user->email= $request->input('email');
-        $user->password= Hash::make($request->input('password'));
-        $user->role= $request->input('role');
-        $user->activated= $request->input('activated');
+        $user->username= $request->input(key:'username');
+        $user->email= $request->input(key:'email');
+        $user->password= Hash::make($request->input(key:'password'));
+        $user->role= $request->input(key:'role');
+        $user->activated= $request->input(key:'activated');
         $user->save();
         return $user;
     }
 
     function login(Request $request) {
 
-        $user = User::where('email', $request->email)->first();
+        if(!Auth::attempt($request->only(keys:'email', 'password'))) {
+            return response()->json([
+                'message' => 'Invalid login details'
+            ], status:401);
+        }
+
+        $user = Auth::user();
 
         return $user;
     }

@@ -18,8 +18,7 @@ return new class extends Migration
             $table->string('password');
             $table->string("role")->default('customer');
             $table->timestamps();
-            // $table->string("customer_id");
-            // $table->string("activated");
+      
         });
     }
 

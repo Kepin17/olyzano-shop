@@ -17,7 +17,7 @@ const Login: React.FC<LoginProps> = (props) => {
     e.preventDefault();
 
     axios
-      .post("http://localhost:8000/api/login", {
+      .post("http://localhost:8000/api/v1/login", {
         email: e.currentTarget.email.value,
         password: e.currentTarget.password.value,
       })
