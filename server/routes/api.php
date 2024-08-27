@@ -16,6 +16,7 @@ Route::prefix('v1')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
     Route::post('/verify_email_reset_password', [AuthController::class, 'verify_email_reset_password']);
     Route::post('/reset_password', [AuthController::class, 'reset_password']);
+    Route::get('/verify-email/{token}', [AuthController::class, 'verifyEmail']);
 
     Route::middleware(['check.jwt.token'])->group(function () {
         Route::get('/profile', [AuthController::class, 'profile']);

@@ -2,13 +2,17 @@
 
 namespace App\Http\Controllers\API;
 
-use App\Http\Controllers\Controller;
 use App\Models\User;
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
+use App\Mail\EmailVerification;
+use Tymon\JWTAuth\Facades\JWTAuth;
+use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 use Tymon\JWTAuth\Exceptions\JWTException;
-use Tymon\JWTAuth\Facades\JWTAuth;
+use Illuminate\Auth\Notifications\VerifyEmail;
 
 class AuthController extends Controller
 {
@@ -36,6 +40,11 @@ class AuthController extends Controller
         }
 
         $user = User::create($data);
+        $token = Str::random(32);
+        $user->update(['verification_token' => $token]);
+
+        $verificationUrl = url("/api/v1/verify-email/{$token}");
+        Mail::to($user->email)->send(new EmailVerification($user, $verificationUrl));
 
         return response()->json([
             'success' => true,
@@ -57,6 +66,15 @@ class AuthController extends Controller
         }
 
         $user = Auth::user();
+
+        if (!$user->email_verified_at) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Email Belum Diverifikasi!',
+                'data' => 'Silakan verifikasi email Anda terlebih dahulu.'
+            ], 403);
+        }
+
         $success['token'] = $token;
         $success['username'] = $user->username;
         $success['email'] = $user->email;
@@ -69,7 +87,8 @@ class AuthController extends Controller
         ], 200);
     }
 
-    public function profile() {
+    public function profile()
+    {
         $success = Auth::user();
 
         return response()->json([
@@ -77,6 +96,28 @@ class AuthController extends Controller
             'message' => 'User Profile',
             'data' => $success
         ], 200);
+    }
+
+    public function verifyEmail($token)
+    {
+        $user = User::where('verification_token', $token)->first();
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Token Verifikasi Tidak Valid!'
+            ], 400);
+        }
+
+        $user->update([
+            'email_verified_at' => now(),
+            'verification_token' => null
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Email Berhasil Diverifikasi!'
+        ]);
     }
 
     public function verify_email_reset_password(Request $request)
