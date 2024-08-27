@@ -40,7 +40,7 @@ class CartController extends Controller
         if ($product->current_stock < $request->quantity) {
             return response()->json([
                 'success' => false,
-                'message' => 'Stok produk tersedia hanya '. $product->current_stock.'unit!'
+                'message' => 'Stok produk tersedia hanya ' . $product->current_stock . 'unit!'
             ], 400);
         }
 
@@ -102,6 +102,44 @@ class CartController extends Controller
                 }),
                 'total_quantity' => $cartItems->sum('quantity')
             ]
-            ], 200);
+        ], 200);
+    }
+
+    public function updateCart(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'product_id' => 'required|exists:products,id',
+            'quantity' => 'required|integer|min:0'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ada Kesalahan!',
+                'data' => $validator->errors()
+            ], 400);
+        }
+
+        $user_id = Auth::id();
+        $cartItem = Cart::where('user_id', $user_id)->where('product_id', $request->product_id)->first();
+
+        if (!$cartItem) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Produk tidak ditemukan di keranjang!'
+            ], 404);
+        }
+
+        if ($request->quantity == 0) {
+            $cartItem->delete();
+        } else {
+            $cartItem->quantity = $request->quantity;
+            $cartItem->save();
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Keranjang berhasil diperbarui'
+        ], 200);
     }
 }

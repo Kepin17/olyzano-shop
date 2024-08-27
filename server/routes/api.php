@@ -30,5 +30,6 @@ Route::prefix('v1')->group(function () {
 
         Route::post('/cart', [CartController::class, 'addToCart']);
         Route::get('/cart', [CartController::class, 'showCart']);
+        Route::post('/cart/update', [CartController::class, 'updateCart']);
     });
 });
