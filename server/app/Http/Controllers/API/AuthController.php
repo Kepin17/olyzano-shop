@@ -68,7 +68,17 @@ class AuthController extends Controller
             'data' => $success
         ], 200);
     }
-   
+
+    public function profile() {
+        $success = Auth::user();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'User Profile',
+            'data' => $success
+        ], 200);
+    }
+
     public function verify_email_reset_password(Request $request)
     {
         $request->validate([
@@ -77,12 +87,12 @@ class AuthController extends Controller
 
         $user = User::where('email', $request->email)->first();
 
-        if(!$user) {
+        if (!$user) {
             return response()->json([
                 'success' => false,
                 'message' => 'Verifikasi Email Gagal!',
                 'data' => "Email Tidak Terdaftar!"
-            ] , 400);
+            ], 400);
         }
 
         try {
@@ -102,10 +112,11 @@ class AuthController extends Controller
                 'token' => $token,
                 'email' => $user->email
             ]
-            ], 200);
+        ], 200);
     }
 
-    public function reset_password(Request $request) {
+    public function reset_password(Request $request)
+    {
         $request->validate([
             'email' => 'required|email',
             'password' => 'required|min:8',
@@ -137,6 +148,4 @@ class AuthController extends Controller
             ], 500);
         }
     }
-
-    
 }
