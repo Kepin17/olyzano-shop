@@ -236,11 +236,11 @@ class ProductController extends Controller
             ], 404);
         }
 
-        $product->delete();
-
         if ($product->image) {
             Storage::delete('public/images/' . $product->image);
         }
+        
+        $product->delete();
 
         return response()->json([
             'success' => true,

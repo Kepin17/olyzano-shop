@@ -17,6 +17,7 @@ Route::prefix('v1')->group(function () {
     Route::post('/reset_password', [AuthController::class, 'reset_password']);
 
     Route::middleware(['check.jwt.token'])->group(function () {
+        Route::get('/profile', [AuthController::class, 'profile']);
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::get('/products', [ProductController::class, 'showAllProduct']);
         Route::post('/product', [ProductController::class, 'addProduct']);
