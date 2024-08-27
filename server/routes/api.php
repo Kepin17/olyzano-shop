@@ -10,12 +10,13 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
+
 Route::prefix('v1')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/login', [AuthController::class, 'login']);
-    Route::post('/verify_email_reset_password', [AuthController::class, 'verify_email_reset_password']);
+    Route::post('/verify-email', [AuthController::class, 'verify_email']);
     Route::post('/reset_password', [AuthController::class, 'reset_password']);
-
+    
     Route::middleware(['check.jwt.token'])->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::get('/products', [ProductController::class, 'showAllProduct']);
