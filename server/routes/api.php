@@ -29,6 +29,6 @@ Route::prefix('v1')->group(function () {
         Route::get('/flash-sale-products', [ProductController::class, 'showFlashSaleProducts']);
 
         Route::post('/cart', [CartController::class, 'addToCart']);
-        Route::get('/cart/{id}', [CartController::class, 'showCart']);
+        Route::get('/cart', [CartController::class, 'showCart']);
     });
 });

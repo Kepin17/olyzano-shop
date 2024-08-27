@@ -79,5 +79,29 @@ class CartController extends Controller
         }
     }
 
-    
+    public function showCart()
+    {
+        $user_id = Auth::id();
+
+        $cartItems = Cart::where('user_id', $user_id)->with('product')->get();
+
+
+        $items = $cartItems->map(function ($cartItem) {
+            return [
+                'product' => $cartItem->product,
+                'quantity' => $cartItem->quantity
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'items' => $items,
+                'total_price' => $cartItems->sum(function ($cartItem) {
+                    return $cartItem->product->price * $cartItem->quantity;
+                }),
+                'total_quantity' => $cartItems->sum('quantity')
+            ]
+            ], 200);
+    }
 }
