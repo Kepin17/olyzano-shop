@@ -142,4 +142,35 @@ class CartController extends Controller
             'message' => 'Keranjang berhasil diperbarui'
         ], 200);
     }
+
+    public function removeCart(Request $request) {
+        $validator = Validator::make($request->all(), [
+            'product_id' => 'required|exists:products,id'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ada Kesalahan!',
+                'errors' => $validator->errors()
+            ], 400);
+        }
+
+        $user_id = Auth::id();
+        $cartItem = Cart::where('user_id', $user_id)->where('product_id', $request->product_id)->first();
+
+        if ($cartItem) {
+            $cartItem->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Produk berhasil dihapus dari keranjang!'
+            ], 200);
+        } else {
+            return response()->json([
+                'success' => false,
+                'message' => 'Produk tidak ditemukan di keranjang!'
+            ], 404);
+        }
+    }
 }
