@@ -7,15 +7,24 @@ use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use App\Mail\EmailVerification;
 use Tymon\JWTAuth\Facades\JWTAuth;
+use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 use Tymon\JWTAuth\Exceptions\JWTException;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Auth\Notifications\VerifyEmail;
 
 class AuthController extends Controller
 {
+    private function getLockoutTime($key)
+    {
+        $attempts = RateLimiter::attempts($key);
+        $multiplier = floor(($attempts - 5) / 5) + 1;
+        return min(60 * $multiplier, 60 * 60); // Maximum lockout time is 1 hour
+    }
+
     public function register(Request $request)
     {
         $validator = Validator::make($request->all(), [

@@ -13,7 +13,7 @@ Route::get('/user', function (Request $request) {
 
 Route::prefix('v1')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
-    Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
     Route::post('/verify_email_reset_password', [AuthController::class, 'verify_email_reset_password']);
     Route::post('/reset_password', [AuthController::class, 'reset_password']);
     Route::get('/verify-email/{token}', [AuthController::class, 'verifyEmail']);
