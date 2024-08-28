@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('verification_token')->nullable();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->string('password_reset_token')->nullable();
             $table->string("role")->default('customer');
             $table->string("status")->default('active');
             $table->timestamps();

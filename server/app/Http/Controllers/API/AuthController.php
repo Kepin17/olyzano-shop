@@ -9,6 +9,7 @@ use App\Mail\EmailVerification;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
+use App\Mail\PasswordResetEmail;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
@@ -18,13 +19,6 @@ use Illuminate\Auth\Notifications\VerifyEmail;
 
 class AuthController extends Controller
 {
-    private function getLockoutTime($key)
-    {
-        $attempts = RateLimiter::attempts($key);
-        $multiplier = floor(($attempts - 5) / 5) + 1;
-        return min(60 * $multiplier, 60 * 60); // Maximum lockout time is 1 hour
-    }
-
     public function register(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -145,21 +139,16 @@ class AuthController extends Controller
             ], 400);
         }
 
-        try {
-            $token = JWTAuth::fromUser($user);
-        } catch (JWTException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Gagal menambahkan token!',
-                'data' => $e->getMessage()
-            ], 500);
-        }
+        $token = Str::random(32);
+        $user->update(['password_reset_token' => $token]);  
+
+        $resetUrl = url("/api/v1/password/reset/{$token}");
+        Mail::to($user->email)->send(new PasswordResetEmail($user, $resetUrl));
 
         return response()->json([
             'success' => true,
             'message' => 'Verifikasi Email Berhasil!',
             'data' => [
-                'token' => $token,
                 'email' => $user->email
             ]
         ], 200);
@@ -173,13 +162,22 @@ class AuthController extends Controller
             'confirm_password' => 'required|same:password'
         ]);
 
-        $user = User::where('email', $request->email)->first();
+        $user = User::where('password_reset_token', $request->token)->first();
+
+        if (!$user) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Token Reset Password Tidak Valid!',
+            ], 400);
+        }
+
         $user->password = bcrypt($request->password);
+        $user->password_reset_token = null;
         $user->save();
 
         return response()->json([
             'success' => true,
-            'message' => 'Password Berhasil direset!',
+            'message' => 'Password Berhasil direset!'
         ]);
     }
 

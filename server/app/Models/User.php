@@ -27,7 +27,8 @@ class User extends Authenticatable implements JWTSubject
         'password',
         'role',
         'verification_token',
-        'email_verified_at'
+        'email_verified_at',
+        'password_reset_token'
     ];
 
     protected $attributes = [
