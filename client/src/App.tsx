@@ -5,15 +5,8 @@ import LoginPage from "./components/pages/Auth/LoginPage";
 import RegisterPage from "./components/pages/Auth/RegisterPage";
 import ForgotPasswordPage from "./components/pages/Auth/ForgotPasswordPage";
 import ProtectedRoute from "./components/fragments/ProtectedRoute";
-import { useEffect, useState } from "react";
-
+import Dashboard from "./components/pages/Admin/DashboardPage";
 function App() {
-  const [user, setUser] = useState(null);
-  useEffect(() => {
-    const getuser = localStorage.getItem("user");
-    const user = JSON.parse(getuser || "{}");
-    setUser(user);
-  }, []);
   return (
     <>
       <Routes>
@@ -23,8 +16,16 @@ function App() {
         <Route
           path="/"
           element={
-            <ProtectedRoute user={user}>
+            <ProtectedRoute>
               <HomePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin-dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
             </ProtectedRoute>
           }
         />
