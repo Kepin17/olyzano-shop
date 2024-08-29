@@ -2,11 +2,12 @@ import { useEffect, useState } from "react";
 import Title from "../../elements/Title";
 import { Link, useNavigate } from "react-router-dom";
 import { FaBasketShopping } from "react-icons/fa6";
-import { FaBell, FaSearch } from "react-icons/fa";
+import { FaBell, FaSearch, FaTools } from "react-icons/fa";
 import Input from "../../elements/input";
 import Button from "../../elements/Button";
 import { MdHourglassEmpty } from "react-icons/md";
 import { IoIosArrowUp } from "react-icons/io";
+import axios from "axios";
 
 interface NavbarFragmentProps {
   children: React.ReactNode;
@@ -17,19 +18,22 @@ const NavbarFragment: React.FC<NavbarFragmentProps> = (props) => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [showBasketDropdown, setShowBasketDropdown] = useState(false);
   const [isScrolling, setIsScrolling] = useState(false);
-  const [username, setUsername] = useState("s");
+  const [token, setToken] = useState("");
+  const [username, setUsername] = useState("");
+  const [role, setRole] = useState("");
   const [dropDownProfile, setDropDownProfile] = useState(false);
 
   const navigate = useNavigate();
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user-id") || "{}");
-    if (user && user.username) {
-      setUsername(user.username);
-    } else {
-      setUsername("guest");
+    const getUser = localStorage.getItem("user") || "{}";
+    const user = JSON.parse(getUser);
+    if (user.data) {
+      setToken(user.data.token);
+      setUsername(user.data.username);
+      setRole(user.data.role);
     }
-  }, [username]);
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -51,6 +55,26 @@ const NavbarFragment: React.FC<NavbarFragmentProps> = (props) => {
     setShowDropdown(false);
   };
 
+  const logoutHandler = async () => {
+    try {
+      const response = await axios.post(
+        "http://localhost:8000/api/v1/logout",
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      console.log("Logout success" + response.data);
+      localStorage.removeItem("user");
+
+      navigate("/login");
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
   return (
     <>
       <nav
@@ -67,7 +91,7 @@ const NavbarFragment: React.FC<NavbarFragmentProps> = (props) => {
             <Input type="text" name="search" placeholder="Search" className="w-full focus:outline-none bg-transparent"></Input>
           </div>
         </div>
-        <div className="flex w-[500px] mx-4 gap-5">
+        <div className="flex w-[600px] mx-4 gap-5">
           <ul className="navbar flex items-center gap-5">
             <li className="relative">
               <span className="font-bold font-roboto cursor-pointer" onMouseEnter={showDropdownHandler}>
@@ -124,7 +148,7 @@ const NavbarFragment: React.FC<NavbarFragmentProps> = (props) => {
               </Link>
             </li>
           </ul>
-          {username === "guest" ? (
+          {token === "" ? (
             <>
               <Button
                 type="button"
@@ -135,46 +159,54 @@ const NavbarFragment: React.FC<NavbarFragmentProps> = (props) => {
               >
                 Login
               </Button>
-              <Button type="button" className="w-full h-10 rounded-md bg-[#201E43] text-white font-roboto font-bold">
+              <Button
+                type="button"
+                className="w-full h-10 rounded-md bg-[#201E43] text-white font-roboto font-bold"
+                onClick={() => {
+                  navigate("/register");
+                }}
+              >
                 Register
               </Button>
             </>
           ) : (
             <>
-              <div
-                className="flex gap-2 items-center cursor-pointer font-roboto relative"
-                onMouseEnter={() => {
-                  setDropDownProfile(!dropDownProfile);
-                }}
-                onMouseLeave={() => {
-                  setDropDownProfile(false);
-                }}
-              >
-                <p>Hi, {username}</p>
-                <IoIosArrowUp
-                  className="transition-all duration-300 ease-in-out"
-                  style={{
-                    transform: dropDownProfile ? "rotate(180deg)" : "rotate(0deg)",
+              <div className="w-[250px] flex items-center cursor-pointer font-roboto relative ">
+                <p
+                  className="w-full flex items-center gap-2"
+                  onMouseEnter={() => {
+                    setDropDownProfile(true);
                   }}
-                />
+                >
+                  Hi, {username}
+                  <span>
+                    <IoIosArrowUp
+                      className="transition-all duration-300 ease-in-out"
+                      style={{
+                        transform: dropDownProfile ? "rotate(180deg)" : "rotate(0deg)",
+                      }}
+                    />
+                  </span>
+                </p>
                 <div
-                  className="dropdown border-2 w-[200px] absolute top-6 flex flex-col items-start bg-white rounded-md shadow-lg p-3 font-roboto transition-all duration-300 ease-in-out"
+                  className="dropdown border-2 w-[200px] absolute top-6 left-0 flex flex-col items-start bg-white rounded-md shadow-lg p-3 font-roboto transition-all duration-300 ease-in-out"
                   style={{
                     opacity: dropDownProfile ? 1 : 0,
                   }}
+                  onMouseLeave={() => setDropDownProfile(false)}
                 >
                   <button className="hover:text-[#E88D67]">Profile</button>
-                  <button
-                    className="hover:text-[#E88D67]"
-                    onClick={() => {
-                      localStorage.clear();
-                      window.location.reload();
-                    }}
-                  >
+                  <button className="hover:text-[#E88D67]" onClick={logoutHandler}>
                     Logout
                   </button>
                   <button className="hover:text-[#E88D67]">Shipping Status</button>
                 </div>
+                {role === "admin" ||
+                  (role === "super admin" && (
+                    <Button type="button" className="bg-[#E88D67] w-full h-10 flex items-center justify-center gap-2 text-white font-roboto font-bold rounded-md shadow-md" onClick={() => navigate("/admin-dashboard")}>
+                      <FaTools /> Dashboard
+                    </Button>
+                  ))}
               </div>
             </>
           )}

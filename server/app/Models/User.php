@@ -26,6 +26,8 @@ class User extends Authenticatable implements JWTSubject
         'email',
         'password',
         'role',
+        'verification_token',
+        'email_verified_at'
     ];
 
     protected $attributes = [
@@ -39,6 +41,14 @@ class User extends Authenticatable implements JWTSubject
     public function getJWTCustomClaims() {
         return [];
     }
+
+    public function carts() {
+        return $this->hasMany(Cart::class);
+    }
+
+    // public function orders() {
+    //     return $this->hasMany(Order::class);
+    // }
 
     /**
      * The attributes that should be hidden for serialization.
