@@ -6,6 +6,7 @@ use App\Http\Middleware\CheckJWTToken;
 use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\CartController;
 use App\Http\Controllers\API\ProductController;
+use App\Http\Controllers\API\CheckoutController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
