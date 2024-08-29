@@ -1,17 +1,23 @@
-import React from "react";
-import { Navigate } from "react-router-dom";
+import React, { useEffect } from "react";
+import LoginPage from "../../pages/Auth/LoginPage";
 
 interface ProtectedRouteProps {
-  user: object | null;
   children: React.ReactNode;
 }
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ user, children }) => {
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
+  const [isAuthenticated, setIsAuthenticated] = React.useState(false);
+  useEffect(() => {
+    const getuser = localStorage.getItem("user");
+    const user = JSON.parse(getuser || "{}");
+    setIsAuthenticated(user.success);
+  }, []);
 
-  return children;
+  if (!isAuthenticated) {
+    return <LoginPage />;
+  } else {
+    return children;
+  }
 };
 
 export default ProtectedRoute;
