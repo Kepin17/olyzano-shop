@@ -102,7 +102,7 @@ class CheckoutController extends Controller
                 'courier' => $request->courier
             ])->get();
 
-            // Log::info('Ongkos Kirim Response:', $cost);
+            Log::info('Ongkos Kirim Response:', $cost);
 
             if (empty($cost[0]['costs'][0]['cost'][0]['value'])) {
                 throw new \Exception('Gagal mendapatkan biaya pengiriman');
@@ -111,6 +111,7 @@ class CheckoutController extends Controller
             $shippingCost = $cost[0]['costs'][0]['cost'][0]['value'];
             $totalPrice += $shippingCost;
 
+            // Buat order
             $order = Order::create([
                 'user_id' => $user_id,
                 'total_price' => $totalPrice,
@@ -122,19 +123,21 @@ class CheckoutController extends Controller
                 throw new \Exception('Gagal membuat order atau Order ID tidak ditemukan');
             }
 
+            // Simpan order items
             foreach ($orderItems as $orderItem) {
-                // Log::info('Saving Order Item:', $orderItem);
+                Log::info('Saving Order Item:', $orderItem);
                 $order->items()->create($orderItem);
             }
 
-            // Log::info('Order created:', $order->toArray());
+            Log::info('Order created:', $order->toArray());
 
+            // Integrasi Midtrans
             Config::$serverKey = env('MIDTRANS_SERVER_KEY');
             Config::$isProduction = false;
             Config::$isSanitized = true;
             Config::$is3ds = true;
 
-            // Log::info('Total Price:', ['totalPrice' => $totalPrice]);
+            Log::info('Total Price:', ['totalPrice' => $totalPrice]);
 
             $midtransParams = [
                 'transaction_details' => [
@@ -145,25 +148,37 @@ class CheckoutController extends Controller
                     'first_name' => Auth::user()->username,
                     'email' => Auth::user()->email,
                 ],
-                'item_details' => array_map(function($item) {
-                    return [
-                        'id' => $item['product_id'],
-                        'price' => $item['price'],
-                        'quantity' => $item['quantity'],
-                        'name' => Product::find($item['product_id'])->name, // Pastikan nama produk ada
-                        'subtotal' => $item['subtotal'],
-                    ];
-                }, $orderItems),
+                'item_details' => array_merge(
+                    array_map(function ($item) {
+                        return [
+                            'id' => $item['product_id'],
+                            'price' => $item['price'],
+                            'quantity' => $item['quantity'],
+                            'name' => Product::find($item['product_id'])->name,
+                            'subtotal' => $item['subtotal'],
+                        ];
+                    }, $orderItems),
+                    [
+                        [
+                            'id' => 'shipping_cost',
+                            'price' => $shippingCost,
+                            'quantity' => 1,
+                            'name' => 'Shipping Cost',
+                            'subtotal' => $shippingCost,
+                        ]
+                    ]
+                ),
             ];
-            // Log::info('Order Items:', $orderItems);
-            // Log::info('Order Created:', $order->toArray());
-            // Log::info('Midtrans Params:', $midtransParams);
+            Log::info('Order Items:', $orderItems);
+            Log::info('Order Created:', $order->toArray());
+            Log::info('Midtrans Params:', $midtransParams);
             if (!isset($order->id)) {
                 throw new \Exception('Order ID tidak ditemukan');
             }
 
 
             $snapToken = Snap::getSnapToken($midtransParams);
+            // dd($snapToken);
             DB::commit();
 
             return response()->json([
@@ -177,10 +192,10 @@ class CheckoutController extends Controller
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
-            // Log::error('Checkout Error:', [
-            //     'message' => $e->getMessage(),
-            //     'stack' => $e->getTraceAsString()
-            // ]);
+            Log::error('Checkout Error:', [
+                'message' => $e->getMessage(),
+                'stack' => $e->getTraceAsString()
+            ]);
             return response()->json([
                 'success' => false,
                 'message' => 'Checkout gagal!',
