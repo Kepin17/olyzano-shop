@@ -18,3 +18,5 @@ yarn-error.log
 /.fleet
 /.idea
 /.vscode
+/app/Services/MidtransService.php
+/app/Services/RajaOngkirService.php

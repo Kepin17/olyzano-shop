@@ -61,6 +61,7 @@ class ProductController extends Controller
             'description' => 'required|string',
             'category' => 'required|string',
             'image.*' => 'required|image|mimes:jpeg,png,jpg|max:10240',
+            'weight' => 'required|integer',
             'is_flash_sale' => 'nullable|boolean',
             'discount' => 'nullable|numeric',
             'rating' => 'nullable|numeric|min:0|max:5',

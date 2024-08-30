@@ -64,7 +64,6 @@ class CheckoutController extends Controller
             'cart' => 'required_without:product_id|boolean',
             'courier' => 'required|string',
             'city_destination' => 'required|integer',
-            'weight' => 'required|integer|min:1',
         ]);
 
         if ($validator->fails()) {
@@ -79,6 +78,7 @@ class CheckoutController extends Controller
         try {
             $orderItems = [];
             $totalPrice = 0;
+            $totalWeight = 0;
 
             if ($request->cart) {
                 $cartItems = Cart::where('user_id', $user_id)->get();
@@ -87,18 +87,19 @@ class CheckoutController extends Controller
                     $product = Product::findOrFail($item->product_id);
                     $orderItems[] = $this->createOrderItem($product, $item->quantity);
                     $totalPrice += $orderItems[count($orderItems) - 1]['subtotal'];
+                    $totalWeight += $product->weight * $item->quantity;
                 }
             } else {
                 $product = Product::findOrFail($request->product_id);
                 $orderItems[] = $this->createOrderItem($product, $request->quantity);
                 $totalPrice += $orderItems[0]['subtotal'];
+                $totalWeight += $product->weight * $request->quantity;
             }
             // dd($orderItems);
-            // Hitung ongkos kirim
             $cost = RajaOngkir::ongkosKirim([
                 'origin' => env('RAJAONGKIR_CITY_ORIGIN'),
                 'destination' => $request->city_destination,
-                'weight' => $request->weight,
+                'weight' => $totalWeight,
                 'courier' => $request->courier
             ])->get();
 
@@ -111,7 +112,6 @@ class CheckoutController extends Controller
             $shippingCost = $cost[0]['costs'][0]['cost'][0]['value'];
             $totalPrice += $shippingCost;
 
-            // Buat order
             $order = Order::create([
                 'user_id' => $user_id,
                 'total_price' => $totalPrice,
@@ -123,7 +123,6 @@ class CheckoutController extends Controller
                 throw new \Exception('Gagal membuat order atau Order ID tidak ditemukan');
             }
 
-            // Simpan order items
             foreach ($orderItems as $orderItem) {
                 Log::info('Saving Order Item:', $orderItem);
                 $order->items()->create($orderItem);
@@ -131,7 +130,6 @@ class CheckoutController extends Controller
 
             Log::info('Order created:', $order->toArray());
 
-            // Integrasi Midtrans
             Config::$serverKey = env('MIDTRANS_SERVER_KEY');
             Config::$isProduction = false;
             Config::$isSanitized = true;

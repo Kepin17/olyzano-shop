@@ -20,6 +20,7 @@ class Product extends Model
         'rating',
         'total_rating',
         'stock',
+        'weight',
         'current_stock',
         'is_flash_sale',
     ];
