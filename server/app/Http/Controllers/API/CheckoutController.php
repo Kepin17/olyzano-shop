@@ -6,7 +6,8 @@ use Midtrans\Snap;
 use App\Models\Cart;
 use App\Models\City;
 use Midtrans\Config;
-use App\Models\Order;use App\Models\Product;
+use App\Models\Order;
+use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -15,6 +16,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Validator;
 use Kavist\RajaOngkir\Facades\RajaOngkir;
+use Midtrans\Notification;
 
 class CheckoutController extends Controller
 {
@@ -201,7 +203,67 @@ class CheckoutController extends Controller
             ], 500);
         }
     }
+    public function midtransCallback(Request $request)
+    {
+        Config::$serverKey = env('MIDTRANS_SERVER_KEY');
+        Config::$isProduction = false;
+        Config::$isSanitized = true;
+        Config::$is3ds = true;
 
+        try {
+            $notification = new Notification();
+
+            $transactionStatus = $notification->transaction_status;
+            $orderId = $notification->order_id;
+            $fraudStatus = $notification->fraud_status;
+
+            Log::info('Midtrans Notification:', (array) $notification);
+
+            $order = Order::findOrFail($orderId);
+
+            if ($transactionStatus == 'capture') {
+                if ($fraudStatus == 'challenge') {
+                    $order->update(['status' => 'challenge']);
+                } else if ($fraudStatus == 'accept') {
+                    $order->update(['status' => 'paid']);
+                    $this->reduceStock($order);
+                }
+            } else if ($transactionStatus == 'settlement') {
+                $order->update(['status' => 'paid']);
+            } else if ($transactionStatus == 'pending') {
+                $order->update(['status' => 'pending']);
+            } else if ($transactionStatus == 'deny') {
+                $order->update(['status' => 'deny']);
+            } else if ($transactionStatus == 'expire') {
+                $order->update(['status' => 'expire']);
+            } else if ($transactionStatus == 'cancel') {
+                $order->update(['status' => 'cancel']);
+            }
+        } catch (\Exception $e) {
+            Log::error('Midtrans Callback Error:', [
+                'message' => $e->getMessage(),
+                'stack' => $e->getTraceAsString(),
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Callback handling failed!',
+            ], 500);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Callback handled successfully!',
+        ], 200);
+    }
+
+    private function reduceStock($order)
+    {
+        foreach ($order->items as $item) {
+            $product = $item->product;
+            $product->current_stock -= $item->quantity;
+            $product->save();
+        }
+    }
 
     private function createOrderItem($product, $quantity)
     {
