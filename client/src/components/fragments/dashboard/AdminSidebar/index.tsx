@@ -1,8 +1,8 @@
 import SlidebarLayout from "../../../layouts/SidebarLayout";
 import Button from "../../../elements/Button";
 import { dashboardItem } from "./sidebarItem";
-import { GoDotFill } from "react-icons/go";
 import { IoIosArrowUp } from "react-icons/io";
+import { BiSubdirectoryRight } from "react-icons/bi";
 
 const AdminSidebar = () => {
   return (
@@ -16,13 +16,18 @@ const AdminSidebar = () => {
           "
             onClick={() => {
               const dropdownId = document.getElementById(`dropdown-${item.id}`);
+              const dropdownArrow = document.getElementById(`dropdownArrow-${item.id}`);
               if (dropdownId) {
                 if (dropdownId.classList.contains("block")) {
                   dropdownId.classList.remove("block");
                   dropdownId.classList.add("hidden");
+                  dropdownArrow?.classList.add("rotate-90");
+                  dropdownArrow?.classList.remove("rotate-180");
                 } else {
                   dropdownId.classList.remove("hidden");
                   dropdownId.classList.add("block");
+                  dropdownArrow?.classList.remove("rotate-90");
+                  dropdownArrow?.classList.add("rotate-180");
                 }
               }
             }}
@@ -30,7 +35,7 @@ const AdminSidebar = () => {
             <div className="flex gap-2 items-center">
               <item.icon /> {item.name}
             </div>
-            {item.subDropdown && <IoIosArrowUp className="mx-3" />}
+            {item.subDropdown && <IoIosArrowUp className="dropdownArrow transtition-all duration-300 ease-in-out mx-3 rotate-90" id={`dropdownArrow-${item.id}`} />}
           </Button>
           {item.subDropdown && (
             <div className={`w-full h-auto hidden transtition-all duration-300 ease-in-out`} id={`dropdown-${item.id}`}>
@@ -42,7 +47,7 @@ const AdminSidebar = () => {
           hover:text-white hover:bg-slate-800 transtition duration-300
           "
                   >
-                    <GoDotFill className="text-sm" />
+                    <BiSubdirectoryRight className="text-sm" />
                     {subItem.name}
                   </Button>
                 );
