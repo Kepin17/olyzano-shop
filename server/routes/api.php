@@ -39,5 +39,6 @@ Route::prefix('v1')->group(function () {
         Route::get('checkout/provinces', [CheckoutController::class, 'getProvinces']); // Menampilkan daftar provinsi
         Route::get('checkout/cities/{province_id}', [CheckoutController::class, 'getCities']);
         Route::post('checkout', [CheckoutController::class, 'checkout']);
+        Route::post('/midtrans-callback', [CheckoutController::class, 'midtransCallback']);
     });
 });

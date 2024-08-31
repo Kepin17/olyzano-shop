@@ -19,6 +19,7 @@ return new class extends Migration
             $table->text('description');
             $table->string('slug')->unique();
             $table->string('category');
+            $table->integer('weight');
             $table->decimal('discount', 5, 2)->default(0);
             $table->float('rating', 2)->default(0);
             $table->integer('total_rating')->default(0);

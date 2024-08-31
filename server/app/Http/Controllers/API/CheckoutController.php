@@ -8,7 +8,6 @@ use App\Models\City;
 use Midtrans\Config;
 use App\Models\Order;
 use App\Models\Product;
-use App\Models\Province;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -17,6 +16,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Validator;
 use Kavist\RajaOngkir\Facades\RajaOngkir;
+use Midtrans\Notification;
 
 class CheckoutController extends Controller
 {
@@ -64,7 +64,6 @@ class CheckoutController extends Controller
             'cart' => 'required_without:product_id|boolean',
             'courier' => 'required|string',
             'city_destination' => 'required|integer',
-            'weight' => 'required|integer|min:1',
         ]);
 
         if ($validator->fails()) {
@@ -79,6 +78,7 @@ class CheckoutController extends Controller
         try {
             $orderItems = [];
             $totalPrice = 0;
+            $totalWeight = 0;
 
             if ($request->cart) {
                 $cartItems = Cart::where('user_id', $user_id)->get();
@@ -87,22 +87,23 @@ class CheckoutController extends Controller
                     $product = Product::findOrFail($item->product_id);
                     $orderItems[] = $this->createOrderItem($product, $item->quantity);
                     $totalPrice += $orderItems[count($orderItems) - 1]['subtotal'];
+                    $totalWeight += $product->weight * $item->quantity;
                 }
             } else {
                 $product = Product::findOrFail($request->product_id);
                 $orderItems[] = $this->createOrderItem($product, $request->quantity);
                 $totalPrice += $orderItems[0]['subtotal'];
+                $totalWeight += $product->weight * $request->quantity;
             }
             // dd($orderItems);
-            // Hitung ongkos kirim
             $cost = RajaOngkir::ongkosKirim([
                 'origin' => env('RAJAONGKIR_CITY_ORIGIN'),
                 'destination' => $request->city_destination,
-                'weight' => $request->weight,
+                'weight' => $totalWeight,
                 'courier' => $request->courier
             ])->get();
 
-            // Log::info('Ongkos Kirim Response:', $cost);
+            Log::info('Ongkos Kirim Response:', $cost);
 
             if (empty($cost[0]['costs'][0]['cost'][0]['value'])) {
                 throw new \Exception('Gagal mendapatkan biaya pengiriman');
@@ -123,18 +124,18 @@ class CheckoutController extends Controller
             }
 
             foreach ($orderItems as $orderItem) {
-                // Log::info('Saving Order Item:', $orderItem);
+                Log::info('Saving Order Item:', $orderItem);
                 $order->items()->create($orderItem);
             }
 
-            // Log::info('Order created:', $order->toArray());
+            Log::info('Order created:', $order->toArray());
 
             Config::$serverKey = env('MIDTRANS_SERVER_KEY');
             Config::$isProduction = false;
             Config::$isSanitized = true;
             Config::$is3ds = true;
 
-            // Log::info('Total Price:', ['totalPrice' => $totalPrice]);
+            Log::info('Total Price:', ['totalPrice' => $totalPrice]);
 
             $midtransParams = [
                 'transaction_details' => [
@@ -145,25 +146,37 @@ class CheckoutController extends Controller
                     'first_name' => Auth::user()->username,
                     'email' => Auth::user()->email,
                 ],
-                'item_details' => array_map(function($item) {
-                    return [
-                        'id' => $item['product_id'],
-                        'price' => $item['price'],
-                        'quantity' => $item['quantity'],
-                        'name' => Product::find($item['product_id'])->name, // Pastikan nama produk ada
-                        'subtotal' => $item['subtotal'],
-                    ];
-                }, $orderItems),
+                'item_details' => array_merge(
+                    array_map(function ($item) {
+                        return [
+                            'id' => $item['product_id'],
+                            'price' => $item['price'],
+                            'quantity' => $item['quantity'],
+                            'name' => Product::find($item['product_id'])->name,
+                            'subtotal' => $item['subtotal'],
+                        ];
+                    }, $orderItems),
+                    [
+                        [
+                            'id' => 'shipping_cost',
+                            'price' => $shippingCost,
+                            'quantity' => 1,
+                            'name' => 'Shipping Cost',
+                            'subtotal' => $shippingCost,
+                        ]
+                    ]
+                ),
             ];
-            // Log::info('Order Items:', $orderItems);
-            // Log::info('Order Created:', $order->toArray());
-            // Log::info('Midtrans Params:', $midtransParams);
+            Log::info('Order Items:', $orderItems);
+            Log::info('Order Created:', $order->toArray());
+            Log::info('Midtrans Params:', $midtransParams);
             if (!isset($order->id)) {
                 throw new \Exception('Order ID tidak ditemukan');
             }
 
 
             $snapToken = Snap::getSnapToken($midtransParams);
+            // dd($snapToken);
             DB::commit();
 
             return response()->json([
@@ -177,10 +190,10 @@ class CheckoutController extends Controller
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
-            // Log::error('Checkout Error:', [
-            //     'message' => $e->getMessage(),
-            //     'stack' => $e->getTraceAsString()
-            // ]);
+            Log::error('Checkout Error:', [
+                'message' => $e->getMessage(),
+                'stack' => $e->getTraceAsString()
+            ]);
             return response()->json([
                 'success' => false,
                 'message' => 'Checkout gagal!',
@@ -188,7 +201,67 @@ class CheckoutController extends Controller
             ], 500);
         }
     }
+    public function midtransCallback(Request $request)
+    {
+        Config::$serverKey = env('MIDTRANS_SERVER_KEY');
+        Config::$isProduction = false;
+        Config::$isSanitized = true;
+        Config::$is3ds = true;
 
+        try {
+            $notification = new Notification();
+
+            $transactionStatus = $notification->transaction_status;
+            $orderId = $notification->order_id;
+            $fraudStatus = $notification->fraud_status;
+
+            Log::info('Midtrans Notification:', (array) $notification);
+
+            $order = Order::findOrFail($orderId);
+
+            if ($transactionStatus == 'capture') {
+                if ($fraudStatus == 'challenge') {
+                    $order->update(['status' => 'challenge']);
+                } else if ($fraudStatus == 'accept') {
+                    $order->update(['status' => 'paid']);
+                    $this->reduceStock($order);
+                }
+            } else if ($transactionStatus == 'settlement') {
+                $order->update(['status' => 'paid']);
+            } else if ($transactionStatus == 'pending') {
+                $order->update(['status' => 'pending']);
+            } else if ($transactionStatus == 'deny') {
+                $order->update(['status' => 'deny']);
+            } else if ($transactionStatus == 'expire') {
+                $order->update(['status' => 'expire']);
+            } else if ($transactionStatus == 'cancel') {
+                $order->update(['status' => 'cancel']);
+            }
+        } catch (\Exception $e) {
+            Log::error('Midtrans Callback Error:', [
+                'message' => $e->getMessage(),
+                'stack' => $e->getTraceAsString(),
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Callback handling failed!',
+            ], 500);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Callback handled successfully!',
+        ], 200);
+    }
+
+    private function reduceStock($order)
+    {
+        foreach ($order->items as $item) {
+            $product = $item->product;
+            $product->current_stock -= $item->quantity;
+            $product->save();
+        }
+    }
 
     private function createOrderItem($product, $quantity)
     {

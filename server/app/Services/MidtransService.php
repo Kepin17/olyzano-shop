@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Http;
 use Midtrans\Config;
 use Midtrans\Snap;
 
+// tidak berguna sebener e tapi biarkan saja
 class MidtransService
 {
     public function __construct() {
