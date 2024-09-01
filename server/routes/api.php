@@ -23,6 +23,7 @@ Route::prefix('v1')->group(function () {
     Route::middleware(['check.jwt.token'])->group(function () {
         Route::get('/profile', [AuthController::class, 'profile']);
         Route::post('/logout', [AuthController::class, 'logout']);
+        Route::post('/refresh', [AuthController::class, 'refresh']);
 
         Route::get('/products', [ProductController::class, 'showAllProduct']);
         Route::post('/product', [ProductController::class, 'addProduct']);
