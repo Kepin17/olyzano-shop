@@ -17,23 +17,15 @@ export const dashboardItem = [
         name: "View Users",
         path: "/admin/dashboard/user-view",
       },
+
       {
         id: 2,
-        name: "Add User",
-        path: "/admin/dashboard/user-add",
-      },
-      {
-        id: 3,
-        name: "Edit User",
+        name: "Update User",
         path: "/admin/dashboard/user-edit",
       },
+
       {
-        id: 4,
-        name: "Delete User",
-        path: "/admin/dashboard/user-delete",
-      },
-      {
-        id: 5,
+        id: 3,
         name: "User Activity Logs",
         path: "/admin/dashboard/user-logs",
       },
@@ -77,35 +69,20 @@ export const dashboardItem = [
         name: "View Products",
         path: "/admin/dashboard/products-view",
       },
-      {
-        id: 2,
-        name: "Add Product",
-        path: "/admin/dashboard/products-add",
-      },
 
       {
-        id: 3,
-        name: "Edit Product",
-        path: "/admin/dashboard/products-edit",
-      },
-      {
-        id: 4,
-        name: "Delete Product",
-        path: "/admin/dashboard/products-delete",
-      },
-      {
-        id: 5,
+        id: 2,
         name: "Product Activity Logs",
         path: "/admin/dashboard/products-logs",
       },
 
       {
-        id: 6,
+        id: 3,
         name: "Product Reviews & Ratings",
         path: "/admin/dashboard/products-reviews",
       },
       {
-        id: 7,
+        id: 4,
         name: "Product Stock",
         path: "/admin/dashboard/products-stock",
       },
