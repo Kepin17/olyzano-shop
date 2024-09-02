@@ -4,6 +4,7 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
 
+// tidak berguna sebener e tapi biarkan saja
 class RajaOngkirService
 {
     protected $apiKey;
@@ -18,10 +19,10 @@ class RajaOngkirService
         $response = Http::withHeaders([
             'key' => $this->apiKey,
         ])->post("{$this->baseUrl}/cost", [
-            'origin' => '161', // Kode kota asal (Gunakan kode kota yang terterdaftar di Raja Ongkir)
-            'destination' => $destination, // Kode kota tujuan (Gunakan kode kota yang terterdaftar di Raja Ongkir)
-            'weight' => $weight, // Berat barang dalam gram (Gunakan satuan gram)
-            'courier' => $courier, // Kode kurir (Gunakan kode kurir yang terterdaftar di Raja Ongkir)
+            'origin' => '161', 
+            'destination' => $destination, 
+            'weight' => $weight, 
+            'courier' => $courier,
         ]);
 
         $result = $response->json();

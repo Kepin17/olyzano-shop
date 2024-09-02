@@ -140,7 +140,7 @@ class AuthController extends Controller
         }
 
         $token = Str::random(32);
-        $user->update(['password_reset_token' => $token]);  
+        $user->update(['password_reset_token' => $token]);
 
         $resetUrl = url("/api/v1/password/reset/{$token}");
         Mail::to($user->email)->send(new PasswordResetEmail($user, $resetUrl));
@@ -194,6 +194,30 @@ class AuthController extends Controller
                 'success' => false,
                 'message' => 'Logout Gagal!'
             ], 500);
+        }
+    }
+
+    public function refresh(Request $request) {
+        try {
+            $newToken = JWTAuth::parseToken()->refresh();
+
+            $user = Auth::user();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Token berhasil diperbarui',
+                'data' => [
+                    'token' => $newToken,
+                    'username' => $user->username,
+                    'email' => $user->email,
+                    'role' => $user->role
+                ]
+            ], 200);
+        } catch (JWTException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Token tidak dapat diperbarui'
+            ], 401);
         }
     }
 }

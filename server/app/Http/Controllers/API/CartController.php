@@ -116,7 +116,7 @@ class CartController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Ada Kesalahan!',
-                'data' => $validator->errors()
+                'errors' => $validator->errors()
             ], 400);
         }
 

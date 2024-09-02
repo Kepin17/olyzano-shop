@@ -23,6 +23,7 @@ Route::prefix('v1')->group(function () {
     Route::middleware(['check.jwt.token'])->group(function () {
         Route::get('/profile', [AuthController::class, 'profile']);
         Route::post('/logout', [AuthController::class, 'logout']);
+        Route::post('/refresh', [AuthController::class, 'refresh']);
 
         Route::get('/products', [ProductController::class, 'showAllProduct']);
         Route::post('/product', [ProductController::class, 'addProduct']);
@@ -39,5 +40,6 @@ Route::prefix('v1')->group(function () {
         Route::get('checkout/provinces', [CheckoutController::class, 'getProvinces']); // Menampilkan daftar provinsi
         Route::get('checkout/cities/{province_id}', [CheckoutController::class, 'getCities']);
         Route::post('checkout', [CheckoutController::class, 'checkout']);
+        Route::post('/midtrans-callback', [CheckoutController::class, 'midtransCallback']);
     });
 });

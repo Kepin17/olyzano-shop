@@ -1,0 +1,131 @@
+saat composer update/composer install tambahkan '--ignore-platform-reqs'
+
+// service rajaongkir tidak berguna tapi tak simpan e sek
+<?php
+
+namespace App\Services;
+
+use Illuminate\Support\Facades\Http;
+
+class RajaOngkirService
+{
+    protected $apiKey;
+    protected $baseUrl;
+
+    public function __construct() {
+        $this->apiKey = config('services.rajaongkir.api_key');
+        $this->baseUrl = config('services.rajaongkir.base_url');
+    }
+
+    public function calculateShippingCost($destination, $courier, $weight = 1000) {
+        $response = Http::withHeaders([
+            'key' => $this->apiKey,
+        ])->post("{$this->baseUrl}/cost", [
+            'origin' => '161', // Kode kota asal (Gunakan kode kota yang terterdaftar di Raja Ongkir)
+            'destination' => $destination, // Kode kota tujuan (Gunakan kode kota yang terterdaftar di Raja Ongkir)
+            'weight' => $weight, // Berat barang dalam gram (Gunakan satuan gram)
+            'courier' => $courier, // Kode kurir (Gunakan kode kurir yang terterdaftar di Raja Ongkir)
+        ]);
+
+        $result = $response->json();
+        if (isset($result['rajaongkir']['results'][0]['costs'])) {
+            return $result['rajaongkir']['results'][0]['costs'][0]['cost'][0]['value'];
+        }
+
+        throw new \Exception('Gagal menghitung biaya pengiriman');
+    }
+}
+
+// service midtrans tidak berguna tapi tak simpan e sek
+<?php
+
+namespace App\Services;
+
+use Illuminate\Support\Facades\Http;
+use Midtrans\Config;
+use Midtrans\Snap;
+
+class MidtransService
+{
+    public function __construct() {
+        Config::$serverKey = config('services.midtrans.server_key');
+        Config::$isProduction = config('services.midtrans.is_production');
+        Config::$isSanitized = true;
+        Config::$is3ds = true;
+    }
+
+    public function initiatePayment($amount, $products, $user) {
+        $transactionDetails = [
+            'order_id' => uniqid(),
+            'gross_amount' => $amount,
+        ];
+
+        $itemDetails = [];
+        foreach ($products as $product) {
+            $itemDetails[] = [
+                'id' => $product->id,
+                'price' => $product->price,
+                'quantity' => 1,
+                'name' => $product->name,
+            ];
+        }
+
+        $customerDetails = [
+            'first_name' => $user->name,
+            'email' => $user->email,
+            'phone' => $user->phone,
+        ];
+
+        $params = [
+            'transaction_details' => $transactionDetails,
+            'item_details' => $itemDetails,
+            'customer_details' => $customerDetails,
+            'expiry' => date('c', strtotime('+3 days')),
+            // 'callbacks' => [
+            //     'finish' => route('midtrans.finish'),
+            //     'cancel' => route('midtrans.cancel'),
+            // ],
+        ];
+
+        $snapToken = Snap::getSnapToken($params);
+        return "https://app.sandbox.midtrans.com/snap/v2/vtweb/$snapToken";
+    }
+}
+
+// backup midtrans callbacks
+public function midtransCallback(Request $request)
+    {
+        $serverKey = env('MIDTRANS_SERVER_KEY');
+        $hashed = hash('sha512', $request->order_id . $request->status_code . $request->gross_amount . $serverKey);
+
+        if ($hashed != $request->signature_key) {
+            return response()->json(['message' => 'Invalid signature'], 403);
+        }
+
+        $transactionStatus = $request->transaction_status;
+        $orderId = $request->order_id;
+
+        if ($transactionStatus == 'settlement' || $transactionStatus == 'capture') {
+            $order = Order::find($orderId);
+            if (!$order) {
+                return response()->json(['message' => 'Order not found'], 404);
+            }
+
+            // Kurangi stok produk
+            foreach ($order->items as $item) {
+                $product = Product::find($item->product_id);
+                if ($product) {
+                    $product->current_stock -= $item->quantity;
+                    $product->save();
+                }
+            }
+
+            // Update status order
+            $order->status = 'paid';
+            $order->save();
+
+            return response()->json(['message' => 'Stock updated and order marked as paid'], 200);
+        }
+
+        return response()->json(['message' => 'No action taken'], 200);
+    }
