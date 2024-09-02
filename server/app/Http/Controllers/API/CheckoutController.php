@@ -252,9 +252,11 @@ class CheckoutController extends Controller
                 } else if ($fraudStatus == 'accept') {
                     $order->update(['status' => 'paid']);
                     $this->reduceStock($order);
+                    $this->clearCart($order);
                 }
             } else if ($transactionStatus == 'settlement') {
                 $order->update(['status' => 'paid']);
+                $this->clearCart($order);
             } else if ($transactionStatus == 'pending') {
                 $order->update(['status' => 'pending']);
             } else if ($transactionStatus == 'deny') {
@@ -310,5 +312,13 @@ class CheckoutController extends Controller
         }
 
         return $price;
+    }
+
+    private function clearCart($order) {
+        $user_id = $order->user_id;
+
+        $productIds = $order->items->pluck('product_id');
+
+        Cart::where('user_id', $user_id)->whereIn('product_id', $productIds)->delete();
     }
 }
