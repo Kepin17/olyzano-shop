@@ -216,7 +216,8 @@ class AuthController extends Controller
         } catch (JWTException $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Token tidak dapat diperbarui'
+                'message' => 'Token tidak dapat diperbarui',
+                'errors' => $e->getMessage(),
             ], 401);
         }
     }

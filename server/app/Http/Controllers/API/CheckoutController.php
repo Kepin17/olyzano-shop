@@ -59,9 +59,12 @@ class CheckoutController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'product_id' => 'required_without:cart|exists:products,id',
-            'quantity' => 'required_without:cart|integer|min:1',
-            'cart' => 'required_without:product_id|boolean',
+            'product_ids' => 'array|exists:products,id|required_without:cart',
+            'quantities' => 'required_with:product_ids|array',
+            'quantities.*' => 'integer|min:1',
+            'product_id' => 'exists:products,id|required_without_all:cart,product_ids',
+            'quantity' => 'required_without_all:cart,product_ids|integer|min:1',
+            'cart' => 'required_without_all:product_id,product_ids|boolean',
             'courier' => 'required|string',
             'city_destination' => 'required|integer',
         ]);
@@ -81,20 +84,36 @@ class CheckoutController extends Controller
             $totalWeight = 0;
 
             if ($request->cart) {
-                $cartItems = Cart::where('user_id', $user_id)->get();
+                $cartQuery = Cart::where('user_id', $user_id);
+
+                if ($request->has('product_ids')) {
+                    $cartQuery->whereIn('product_id', $request->product_ids);
+                }
+
+                $cartItems = $cartQuery->get();
 
                 foreach ($cartItems as $item) {
                     $product = Product::findOrFail($item->product_id);
-                    $orderItems[] = $this->createOrderItem($product, $item->quantity);
+                    $quantity = $request->quantities[$item->product_id] ?? $item->quantity;
+
+                    if (!isset($request->quantities[$item->product_id])) {
+                        $quantity = $item->quantity;
+                    }
+
+                    $orderItems[] = $this->createOrderItem($product, $quantity);
                     $totalPrice += $orderItems[count($orderItems) - 1]['subtotal'];
-                    $totalWeight += $product->weight * $item->quantity;
+                    $totalWeight += $product->weight * $quantity;
                 }
-            } else {
+            } elseif ($request->has('product_id')) {
                 $product = Product::findOrFail($request->product_id);
-                $orderItems[] = $this->createOrderItem($product, $request->quantity);
+                $quantity = $request->quantity;
+                $orderItems[] = $this->createOrderItem($product, $quantity);
                 $totalPrice += $orderItems[0]['subtotal'];
-                $totalWeight += $product->weight * $request->quantity;
+                $totalWeight += $product->weight * $quantity;
+            } else {
+                throw new \Exception('Tidak ada produk yang dipilih untuk checkout');
             }
+
             // dd($orderItems);
             $cost = RajaOngkir::ongkosKirim([
                 'origin' => env('RAJAONGKIR_CITY_ORIGIN'),
@@ -102,6 +121,14 @@ class CheckoutController extends Controller
                 'weight' => $totalWeight,
                 'courier' => $request->courier
             ])->get();
+
+            Log::info('Request ke RajaOngkir:', [
+                'origin' => env('RAJAONGKIR_CITY_ORIGIN'),
+                'destination' => $request->city_destination,
+                'weight' => $totalWeight,
+                'courier' => $request->courier,
+                'response' => $cost
+            ]);
 
             Log::info('Ongkos Kirim Response:', $cost);
 
