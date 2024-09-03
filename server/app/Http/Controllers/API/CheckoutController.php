@@ -83,6 +83,9 @@ class CheckoutController extends Controller
             $totalPrice = 0;
             $totalWeight = 0;
 
+            $timestamp = now()->format('YmdHisv');
+            $uniqueOrderId = $user_id . '-' . $timestamp;
+
             if ($request->cart) {
                 $cartQuery = Cart::where('user_id', $user_id);
 
@@ -140,6 +143,7 @@ class CheckoutController extends Controller
             $totalPrice += $shippingCost;
 
             $order = Order::create([
+                'id' => $uniqueOrderId,
                 'user_id' => $user_id,
                 'total_price' => $totalPrice,
                 'shipping_cost' => $shippingCost,
@@ -164,9 +168,11 @@ class CheckoutController extends Controller
 
             Log::info('Total Price:', ['totalPrice' => $totalPrice]);
 
+            // $uniqueOrderId = $order->id . '-' . time();
+
             $midtransParams = [
                 'transaction_details' => [
-                    'order_id' => $order->id,
+                    'order_id' => $uniqueOrderId,
                     'gross_amount' => $totalPrice,
                 ],
                 'customer_details' => [
@@ -257,6 +263,7 @@ class CheckoutController extends Controller
             } else if ($transactionStatus == 'settlement') {
                 $order->update(['status' => 'paid']);
                 $this->clearCart($order);
+                $this->reduceStock($order);
             } else if ($transactionStatus == 'pending') {
                 $order->update(['status' => 'pending']);
             } else if ($transactionStatus == 'deny') {
@@ -287,8 +294,11 @@ class CheckoutController extends Controller
     {
         foreach ($order->items as $item) {
             $product = $item->product;
+            Log::info("Reducing stock for product ID: {$product->id}, Quantity: {$item->quantity}");
             $product->current_stock -= $item->quantity;
             $product->save();
+
+            Log::info("New stock for product ID: {$product->id} is {$product->current_stock}");
         }
     }
 
@@ -314,7 +324,8 @@ class CheckoutController extends Controller
         return $price;
     }
 
-    private function clearCart($order) {
+    private function clearCart($order)
+    {
         $user_id = $order->user_id;
 
         $productIds = $order->items->pluck('product_id');
